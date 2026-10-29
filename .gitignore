@@ -1,0 +1,24 @@
+# Node / dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS / temporary files
+.DS_Store
+Thumbs.db
+desktop.ini
+*.tmp
+*.bak
+
+# Editors / IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Arduino / microcontroller build outputs
+*.hex
+*.bin
+*.elf
+build/

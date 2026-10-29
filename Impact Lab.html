@@ -1,0 +1,325 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#101416"><meta name="description" content="A four-zone impact dashboard for your ESP32. Connect over USB, import serial logs, or explore a simulated session.">
+<title>Impact Lab · Four-zone monitor</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23101416'/%3E%3Cpath d='M10 34h12l5-16 9 31 5-15h13' fill='none' stroke='%23d3fb86' stroke-width='5'/%3E%3C/svg%3E">
+<style>@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+:root{color-scheme:dark;--bg:#101416;--panel:#191e21;--line:#30363a;--muted:#959da2;--text:#edf0ec;--accent:#d3fb86;--z1:#d3fb86;--z2:#73cfe0;--z3:#eeae7d;--z4:#b5a0e9;font-family:'DM Sans',sans-serif}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-size:14px}button,a,input,textarea{-webkit-tap-highlight-color:transparent}button,a{touch-action:manipulation}button{font:inherit;cursor:pointer}button:disabled{opacity:.45;cursor:not-allowed}a{color:inherit}button:focus-visible,a:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:4px}h1,h2,p{margin:0}h1,h2,.metric strong,.zone-number,.zone-reading{font-family:'Space Grotesk',sans-serif}h2{font-size:20px;font-weight:500;letter-spacing:-.6px}button{border:0;color:inherit}.rail{position:fixed;inset:0 auto 0 0;width:76px;border-right:1px solid var(--line);display:flex;align-items:center;flex-direction:column;gap:16px;padding:22px 0;z-index:3;background:var(--bg)}.brand{color:var(--accent);width:37px;height:37px;margin-bottom:40px}.brand svg{width:100%}.nav-icon{height:42px;width:42px;border-radius:11px;display:grid;place-items:center;text-decoration:none;font-size:25px;color:var(--muted)}.nav-icon:hover,.nav-icon.selected{background:#28302b;color:var(--accent)}.rail-bottom{margin-top:auto;width:34px;height:34px;display:grid;place-items:center;background:#242b2e;border-radius:50%;font:12px 'Space Grotesk';position:relative}.rail-bottom span{position:absolute;top:43px;font-size:9px;color:var(--muted)}.workspace{margin-left:76px}.topbar{height:77px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 42px}.wordmark{font-family:'Space Grotesk';font-size:17px;font-weight:700;display:flex;align-items:center;letter-spacing:1.6px}.wordmark>span:first-child{font-weight:400;color:var(--muted)}.divider{height:18px;width:1px;background:var(--line);margin:0 22px}.project-name{font:12px 'DM Sans';letter-spacing:0;color:var(--muted)}.top-status{display:flex;gap:9px;align-items:center;font-size:12px;color:var(--muted)}.status-dot,.footer-dot{width:7px;height:7px;display:inline-block;border-radius:50%;background:#737e83}.status-dot.live{background:var(--accent);box-shadow:0 0 9px #d3fb8640}.status-dot.demo{background:var(--z3)}.device-tag{border:1px solid var(--line);padding:5px 8px;border-radius:5px;margin-left:12px;font:10px monospace;letter-spacing:1px}main{max-width:1530px;margin:auto;padding:37px 42px 24px}.heading{display:flex;align-items:center;justify-content:space-between;gap:20px;margin-bottom:25px}.eyebrow{font-size:10px;letter-spacing:1.7px;color:var(--muted);font-weight:600}.eyebrow>span{color:#535e63;margin-left:10px}h1{font-size:44px;font-weight:500;letter-spacing:-2px;margin:7px 0 8px}h1>span{color:var(--accent)}.heading p{color:var(--muted);font-size:13px}.actions{display:flex;align-items:center;gap:10px}.button{min-height:42px;display:inline-flex;align-items:center;justify-content:center;gap:9px;padding:11px 17px;border-radius:7px;font-size:12px;font-weight:600;white-space:nowrap}.primary{background:var(--accent);color:#182118}.primary:hover{background:#e0ffad}.secondary{background:#1d2428;border:1px solid #394145}.secondary:hover{background:#2a3338}.button.small{min-height:34px;padding:8px 12px;font-size:11px}.notice{border:1px solid #343d37;background:#1c251f;border-radius:7px;padding:12px 16px;display:flex;gap:15px;justify-content:space-between;align-items:center;font-size:12px;color:#b5c1b1;margin-bottom:22px;min-height:43px}.notice button{background:transparent;font-size:11px;font-weight:600;white-space:nowrap;color:var(--accent)}.notice.error{background:#30241e;border-color:#69432e;color:#edc6aa}.metrics{display:grid;grid-template-columns:repeat(4,1fr);border:1px solid var(--line);border-radius:10px;background:var(--panel);margin-bottom:22px;overflow:hidden}.metric{padding:20px 23px;position:relative;min-width:0}.metric+.metric{border-left:1px solid var(--line)}.metric-label{color:#b4bcc0;display:flex;justify-content:space-between;font-size:11px}.metric-label>span{color:#78868d;font-size:15px}.metric strong{display:block;font-size:35px;font-weight:500;letter-spacing:-1px;margin:9px 0 5px}.metric small{color:var(--muted);font-size:10px}.metric strong.state-text{font-size:27px;margin:15px 0 8px}.main-grid{display:grid;grid-template-columns:1.48fr 1fr;gap:22px;margin-bottom:22px}.panel{border:1px solid var(--line);border-radius:10px;background:var(--panel);overflow:hidden}.panel-head{padding:22px 24px;display:flex;align-items:center;justify-content:space-between;gap:16px}.panel-head h2{margin-top:7px}.small-pill{font:10px 'DM Sans';color:#a9b3b8;border:1px solid #3b4449;border-radius:5px;padding:5px 8px;white-space:nowrap}.plate-outer{margin:0 24px;padding:16px;background:#13191c;border:1px solid #2d363a;border-radius:8px;position:relative;background-image:radial-gradient(#3a454940 .7px,transparent .7px);background-size:12px 12px}.plate-coordinates{display:flex;justify-content:space-between;font:8px monospace;letter-spacing:1.8px;color:#738086;margin-bottom:14px}.plate{display:grid;grid-template-columns:1fr 1fr;gap:9px;position:relative}.zone{min-height:144px;border:1px solid #465348;border-radius:5px;padding:15px;position:relative;background:linear-gradient(140deg,#24302790,#1b252060);transition:background .15s,border-color .15s,box-shadow .15s;overflow:hidden}.zone:nth-child(2){border-color:#354c54;background:linear-gradient(140deg,#20303890,#1b252a60)}.zone:nth-child(3){border-color:#55483e;background:linear-gradient(140deg,#35291f70,#29231b60)}.zone:nth-child(4){border-color:#47414f;background:linear-gradient(140deg,#2e283b80,#24212d60)}.zone.disabled{opacity:.35}.zone::after{content:'+';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font:30px 'Space Grotesk';font-weight:300;color:var(--color);opacity:.25}.zone.hit{box-shadow:inset 0 0 70px color-mix(in srgb,var(--color) 35%,transparent),0 0 15px color-mix(in srgb,var(--color) 15%,transparent);border-color:var(--color)}.zone.hit::after{content:'◎';opacity:.8;font-size:60px}.zone-top{display:flex;justify-content:space-between;align-items:center}.zone-name{color:var(--color);font-size:11px;letter-spacing:.3px}.zone-number{font-size:11px;color:var(--color);opacity:.6}.zone-bottom{position:absolute;bottom:14px;left:15px;right:15px;display:flex;align-items:end;justify-content:space-between}.zone-reading{font-size:21px;color:#dae3de}.zone-unit{font:8px 'DM Sans';letter-spacing:1px;color:#8a9992;margin-left:4px}.zone-pin{font:9px monospace;color:#8a9992}.plate-caption{display:flex;align-items:center;justify-content:space-between;color:#78878c;font-size:8px;letter-spacing:.6px;margin-top:15px}.live-key{display:flex;align-items:center;gap:5px;letter-spacing:0;font-size:9px}.live-key i{height:5px;width:5px;border-radius:50%;background:var(--accent)}.plate-footer{padding:18px 24px 20px;font-size:10px;display:flex;justify-content:space-between;gap:15px;color:#bac3be}.muted{color:var(--muted)}.sensor-panel .panel-head{padding-bottom:13px}.sensor-row{padding:14px 24px;border-bottom:1px solid #2d3539}.sensor-top{display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:11px}.sensor-label{display:flex;align-items:center;gap:9px}.sensor-dot{height:7px;width:7px;border-radius:2px;background:var(--color)}.sensor-label small{color:var(--muted);font:9px monospace}.sensor-value{font:15px 'Space Grotesk'}.sensor-value small{color:var(--muted);font:9px 'DM Sans'}.meter{height:4px;background:#30383d;border-radius:3px;margin:11px 0 9px;position:relative}.meter-fill{height:100%;width:0;background:var(--color);border-radius:3px;transition:width .18s}.sensor-bottom{display:flex;justify-content:space-between;color:#86949b;font-size:9px}.sensor-note{display:flex;gap:10px;margin:15px 24px 18px;font-size:10px;line-height:1.7;color:var(--muted)}.sensor-note>span{color:#bec7ba;font-size:14px}.sensor-note strong{font-weight:500;color:#c2c9bd}.connection-details{display:grid;grid-template-columns:1fr 1fr;gap:14px 20px;margin:0 24px 20px}.connection-details>div{display:flex;flex-direction:column;gap:5px}.connection-details span{color:#88979d;font-size:9px}.connection-details strong{font-size:10px;font-weight:500;color:#c8d0cd}.signal-panel{margin-bottom:22px}.chart-tools{display:flex;align-items:center;gap:25px}.legend{display:flex;gap:16px;font:10px 'DM Sans';color:#b2bdc2}.legend span{display:flex;align-items:center;gap:6px}.legend span:before{content:'';width:6px;height:6px;border-radius:50%;background:var(--color)}.text-button{background:none;color:#b5c0c3;font-size:11px;padding:6px 0}.text-button:hover{color:var(--accent)}.chart-wrap{position:relative;margin:0 24px;height:180px}.chart-wrap svg{height:100%;width:100%;overflow:visible}.grid-lines{fill:none;stroke:#343c40;stroke-dasharray:3 5;stroke-width:1}.axis-labels{fill:#74858d;font:9px monospace}.signal-line{fill:none;stroke-width:2;stroke-linejoin:round;stroke-linecap:round;vector-effect:non-scaling-stroke}.chart-empty{position:absolute;inset:0;display:grid;place-items:center;color:#7e8c91;font-size:12px}.chart-caption{display:flex;justify-content:space-between;color:#829198;font-size:9px;padding:5px 24px 19px}.count-pill{font:10px 'DM Sans';background:#2b3438;padding:4px 7px;border-radius:5px;margin-left:6px;color:#b6c2c6;vertical-align:middle}.table-scroll{overflow:auto}table{width:100%;border-collapse:collapse;text-align:left;white-space:nowrap}th{color:#7d9098;font-size:9px;font-weight:500;letter-spacing:1px;padding:12px 24px;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}td{padding:14px 24px;border-bottom:1px solid #2c3438;color:#bdc8cb;font:11px 'DM Sans'}td:first-child{font:10px monospace;color:#83969e}.table-zone{color:var(--color)}.intensity-cell{display:flex;align-items:center;gap:10px}.mini-meter{width:70px;height:4px;border-radius:4px;background:#313c40;overflow:hidden}.mini-meter span{height:100%;display:block;background:var(--color)}.result-tag{font-size:9px;border:1px solid #38483e;color:#bcd1ab;padding:4px 7px;border-radius:4px}.result-tag.uncertain{color:var(--z3);border-color:#5f4a3b}.events-empty{display:flex;align-items:center;flex-direction:column;padding:28px 15px 33px}.events-empty>span{font-size:30px;color:#54676e;line-height:1}.events-empty strong{font-size:12px;font-weight:500;color:#a5b3b8;margin:11px 0 7px}.events-empty p{font-size:10px;color:#74878e}footer{display:flex;justify-content:space-between;gap:15px;font-size:10px;color:#9caeb4;padding:23px 0 13px}footer>div:first-child{display:flex;gap:8px;align-items:center}.footer-dot{height:5px;width:5px;background:var(--accent)}.help{font-size:11px;color:#899ba3;line-height:1.8}.help summary{cursor:pointer;width:max-content}.help p{max-width:850px;padding-top:10px}.help a{color:var(--accent)}dialog{width:min(650px,92vw);background:#1b2327;color:var(--text);border:1px solid #46555d;border-radius:12px;padding:27px;box-shadow:0 25px 130px #0008}dialog::backdrop{background:#080e12bb;backdrop-filter:blur(4px)}.dialog-heading{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}.dialog-heading h2{margin-top:7px}.icon-button{background:none;font-size:26px;color:var(--muted)}dialog p{font-size:12px;color:#afbdc3;line-height:1.6;margin-bottom:15px}textarea{width:100%;height:230px;background:#10191e;border:1px solid #41515a;color:#c6d5db;padding:12px;font:11px/1.7 monospace;border-radius:6px;resize:vertical}textarea:focus{outline:1px solid var(--accent)}.dialog-footer{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:18px 0 8px}.file-label{cursor:pointer}.file-label input{display:none}[hidden]{display:none!important}@media(min-width:1450px){.zone{min-height:155px}.plate-outer{padding:22px}.sensor-row{padding-top:16px;padding-bottom:16px}}@media(max-width:1100px){main{padding:30px 25px}.topbar{padding:0 25px}.main-grid{grid-template-columns:1.2fr 1fr;gap:16px}.plate-footer{flex-direction:column;gap:6px}.metric{padding:18px}.plate-outer{margin:0 16px;padding:12px}.panel-head{padding:20px 18px}.zone{padding:10px}.sensor-row{padding-left:18px;padding-right:18px}.zone-pin{font-size:8px}.project-name{display:none}.divider{display:none}.chart-caption{font-size:8px}.connection-details{gap:10px}}@media(max-width:800px){.rail{width:58px}.workspace{margin-left:58px}.topbar{height:64px;padding:0 20px}.brand{width:31px}.heading{align-items:flex-start;flex-direction:column}.heading .actions{width:100%}.heading .actions .button{flex:1}h1{font-size:38px}.metrics{grid-template-columns:1fr 1fr}.metric:nth-child(3){border-left:0;border-top:1px solid var(--line)}.metric:nth-child(4){border-top:1px solid var(--line)}.main-grid{grid-template-columns:1fr}.zone{min-height:155px}.sensor-panel .connection-details{grid-template-columns:repeat(4,1fr)}.chart-tools{gap:12px}.legend{gap:9px}.notice{align-items:flex-start;flex-direction:column;gap:8px}footer{flex-direction:column;gap:8px}.sensor-panel{margin-bottom:0}}@media(max-width:480px){main{padding:23px 13px}.topbar{padding:0 13px}.wordmark{font-size:13px;letter-spacing:1px}.device-tag{display:none}.top-status{font-size:10px;gap:5px}.metric{padding:15px 12px}.metric strong{font-size:29px}.metric small{font-size:9px}.metric strong.state-text{font-size:24px}.panel-head{padding:18px 14px}.sensor-panel .connection-details{grid-template-columns:1fr 1fr}.chart-tools{flex-direction:column;gap:7px;align-items:flex-end}.chart-wrap{margin:0 14px;height:160px}.chart-caption{padding:5px 14px 15px;gap:8px;flex-direction:column}.plate-outer{margin:0 12px;padding:9px}.zone{min-height:132px}.zone-bottom{left:10px;right:10px}.zone-reading{font-size:18px}.zone-unit{font-size:7px}.plate-caption>span:last-child{display:none}.plate-footer{padding:14px}.event-panel .panel-head{align-items:flex-start}.event-panel .actions{flex-direction:column-reverse;gap:4px;align-items:flex-end}th,td{padding-left:15px;padding-right:15px}.events-empty p{text-align:center;line-height:1.7}.rail{width:48px}.workspace{margin-left:48px}.nav-icon{width:34px;height:36px}.brand{width:28px}.rail-bottom{width:28px;height:28px}}@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<aside class="rail" aria-label="Navigation"><a class="brand" href="#overview" aria-label="Impact Lab home"><svg viewBox="0 0 36 36" fill="none"><path d="M3 19h8l4-12 7 23 4-11h7" stroke="currentColor" stroke-width="2.8"/></svg></a><a href="#overview" class="nav-icon selected" aria-label="Overview" title="Overview">▦</a><a href="#signals" class="nav-icon" aria-label="Sensor signals" title="Sensor signals">∿</a><a href="#events" class="nav-icon" aria-label="Event log" title="Event log">≡</a><div class="rail-bottom">IL<span>01</span></div></aside>
+<div class="workspace">
+<header class="topbar"><div class="wordmark">IMPACT<span>LAB</span><span class="divider"></span><span class="project-name">Acrylic / four zones</span></div><div class="top-status"><span class="status-dot" id="source-dot"></span><span id="source-label">Not connected</span><span class="device-tag">ESP32</span></div></header>
+<main id="overview">
+<section class="heading"><div><div class="eyebrow">SENSOR WORKSPACE <span>/ 01</span></div><h1>Impact monitor<span>.</span></h1><p>Four zones. Every signal, in view.</p></div><div class="actions"><button class="button secondary" id="demo-button">▷ <span>Try demo</span></button><button class="button primary" id="connect-button"><span>⌁</span> Connect ESP32</button></div></section>
+<div id="notice" class="notice" role="status">Connect your board to begin, or try a simulated session. <button id="import-button">Import serial log ↗</button></div>
+<section class="metrics" aria-label="Session summary">
+<div class="metric"><span class="metric-label">Captured impacts <span>↗</span></span><strong id="total-hits">0</strong><small>This dashboard session</small></div>
+<div class="metric"><span class="metric-label">Strongest peak <span>⌁</span></span><strong id="strongest">—</strong><small>ADC counts above or below baseline</small></div>
+<div class="metric"><span class="metric-label">Last impact <span>◷</span></span><strong id="last-zone">—</strong><small id="last-time">Waiting for an event</small></div>
+<div class="metric"><span class="metric-label">Detector <span>◉</span></span><strong id="detector" class="state-text">Offline</strong><small id="detector-detail">No live readings</small></div>
+</section>
+<div class="main-grid">
+<section class="panel plate-panel"><div class="panel-head"><div><span class="eyebrow">01 / LOCATION</span><h2>The impact surface</h2></div><span class="small-pill" id="zone-count">4 zones</span></div>
+<div class="plate-outer"><div class="plate-coordinates"><span>Y ↑</span><span>ACRYLIC SHEET</span><span>X →</span></div><div class="plate" id="zone-grid"></div><div class="plate-caption"><span class="live-key"><i></i> Color flashes on a detected impact</span><span>TOP VIEW</span></div></div>
+<div class="plate-footer"><span id="zone-message">Zone layout follows your sensor numbering.</span><span class="muted">GPIO 32 · 33 · 34 · 35</span></div>
+</section>
+<section class="panel sensor-panel"><div class="panel-head"><div><span class="eyebrow">02 / READINGS</span><h2>Sensor activity</h2></div><span class="small-pill">12-bit ADC</span></div><div id="sensor-rows"></div><div class="sensor-note"><span>ⓘ</span><p>Bars show raw readings. The trigger uses the <strong>change from baseline</strong>, not the raw value.</p></div><div class="connection-details"><div><span>Firmware</span><strong id="firmware">—</strong></div><div><span>Detection mode</span><strong id="mode">—</strong></div><div><span>Noise calibration</span><strong id="calibration">—</strong></div><div><span>Connection</span><strong id="transport">115200 baud · USB</strong></div></div></section>
+</div>
+<section class="panel signal-panel" id="signals"><div class="panel-head"><div><span class="eyebrow">03 / SIGNAL HISTORY</span><h2>Readings over time</h2></div><div class="chart-tools"><div class="legend"><span style="--color:var(--z1)">Z1</span><span style="--color:var(--z2)">Z2</span><span style="--color:var(--z3)">Z3</span><span style="--color:var(--z4)">Z4</span></div><button class="text-button" id="pause-button">Pause chart</button></div></div><div class="chart-wrap"><svg id="chart" viewBox="0 0 1100 180" role="img" aria-label="Raw ADC reading history for the four zones"><g class="grid-lines"><path d="M45 10H1090M45 60H1090M45 110H1090M45 160H1090"/></g><g class="axis-labels"><text x="0" y="14">4095</text><text x="0" y="64">2730</text><text x="0" y="114">1365</text><text x="19" y="164">0</text></g><g id="chart-lines"></g></svg><div class="chart-empty" id="chart-empty">Your signal history will appear here.</div></div><div class="chart-caption"><span>Last 60 reported scans · sampled readings, not a continuous waveform</span><span id="sample-count">0 samples</span></div></section>
+<section class="panel event-panel" id="events"><div class="panel-head"><div><span class="eyebrow">04 / SESSION</span><h2>Impact log <span class="count-pill" id="event-count">0</span></h2></div><div class="actions"><button class="text-button" id="clear-button">Clear session</button><button class="button secondary small" id="export-button">↓ Export CSV</button></div></div><div class="table-scroll"><table><thead><tr><th>TIME RECEIVED</th><th>ZONE</th><th>PEAK</th><th>INTENSITY</th><th>RESULT</th></tr></thead><tbody id="event-body"></tbody></table></div><div class="events-empty" id="events-empty"><span>⌁</span><strong>Ready for the first signal</strong><p>Detected impacts will appear here with their zone and strength.</p></div></section>
+<footer><div><span class="footer-dot"></span> Impact Lab <span class="muted">/ ESP32 DevKit V1</span></div><div id="footer-status">Data stays in this browser · no firmware changes</div></footer>
+<details class="help"><summary>Connection help</summary><p>For live USB, open this page directly in desktop Chrome or Edge. Close Arduino Serial Monitor first, then choose Connect ESP32 and select your board’s USB port. If this preview does not support serial, open the deployed link in Chrome. The dashboard reads existing JSON at 115200 baud and does not flash or send commands to the board. Input voltage protection remains a separate hardware requirement.</p><p>You can use Import serial log with your existing output, or Try demo without a board. Demo data is simulated and is never mixed with a live session. <a href="https://developer.chrome.com/docs/capabilities/serial" target="_blank" rel="noreferrer">About browser serial support ↗</a></p></details>
+</main>
+</div>
+<dialog id="import-dialog"><form method="dialog"><div class="dialog-heading"><div><span class="eyebrow">OFFLINE REVIEW</span><h2>Import serial output</h2></div><button class="icon-button" aria-label="Close import dialog">×</button></div><p>Paste complete JSON lines from Arduino Serial Monitor. Import starts a separate recorded session.</p><textarea id="import-text" placeholder='{"type":"status","readings":[100,120,80,110],…}' aria-label="Serial JSON lines" spellcheck="false"></textarea><div class="dialog-footer"><label class="text-button file-label">Choose .jsonl or .txt<input type="file" id="import-file" accept=".txt,.jsonl,.log,.json"></label><button type="button" class="button primary" id="load-button">Load log →</button></div><p id="import-result" class="muted" role="status"></p></form></dialog>
+<script type="module">
+const COLORS = ['#d3fb86', '#73cfe0', '#eeae7d', '#b5a0e9'];
+const TYPES = new Set(['status', 'ready', 'not_ready', 'hit', 'calibrating', 'calibration_warning', 'calibration_error', 'config_error']);
+const bounded = (value, min = 0, max = 4095) => typeof value === 'number' && Number.isFinite(value) && value >= min && value <= max ? value : null;
+function numbers(value) { return Array.from({length: 4}, (_, i) => bounded(Array.isArray(value) ? value[i] : null)); }
+function parseLine(line) {
+  const text = line.replace(/&#x20;|&#32;|&nbsp;/g, ' ').trim();
+  if (!text.startsWith('{') || text.length > 16384) return null;
+  try {
+    const value = JSON.parse(text);
+    if (!value || typeof value !== 'object' || !TYPES.has(value.type)) return null;
+    if (value.type === 'hit' && (!Number.isInteger(value.zone) || value.zone < 0 || value.zone > 4 || bounded(value.peak) === null)) return null;
+    return value;
+  } catch { return null; }
+}
+class LineBuffer {
+  constructor(onLine) { this.pending = ''; this.onLine = onLine; this.dropping = false; }
+  push(chunk) {
+    for (const part of chunk.split(/(?<=\n)/)) {
+      if (!part) continue;
+      if (!this.dropping) this.pending += part;
+      if (this.pending.length > 16384) { this.pending = ''; this.dropping = true; }
+      if (part.endsWith('\n')) {
+        if (!this.dropping) this.onLine(this.pending);
+        this.pending = ''; this.dropping = false;
+      }
+    }
+  }
+  flush() { if (this.pending && !this.dropping) this.onLine(this.pending); this.pending = ''; this.dropping = false; }
+}
+class Monitor {
+  constructor() { this.reset(); }
+  reset() {
+    this.readings = [null,null,null,null]; this.baseline = [null,null,null,null]; this.thresholds = [null,null,null,null];
+    this.min = [null,null,null,null]; this.max = [null,null,null,null]; this.pins = [32,33,34,35]; this.active = 4;
+    this.armed = false; this.enabled = false; this.calibration = null; this.firmware = ''; this.mode = '';
+    this.events = []; this.total = 0; this.strongest = 0; this.history = []; this.lastSeen = 0; this.lastStatus = 0;
+    this.warning = ''; this.messageType = ''; this.uptime = null; this.restarts = 0; this.deviceEvents = null; this.invalid = 0;
+  }
+  accept(m, now = Date.now()) {
+    this.lastSeen = now; this.messageType = m.type;
+    if (m.type === 'calibration_warning' || m.type === 'calibration_error') {
+      this.warning = m.type === 'calibration_error' ? 'Input calibration failed.' : 'Idle noise is high.';
+      if (m.type === 'calibration_error') { this.calibration = false; this.armed = this.enabled = false; }
+      return;
+    }
+    if (m.type === 'config_error') { this.warning = 'Firmware configuration needs attention.'; this.enabled = this.armed = false; return; }
+    if (m.type === 'calibrating') { this.enabled = this.armed = false; this.warning = 'Measuring the startup baseline…'; return; }
+    if (m.type === 'hit') {
+      const candidate = Number.isInteger(m.candidate_zone) && m.candidate_zone >= 1 && m.candidate_zone <= 4 ? m.candidate_zone : null;
+      const hit = {zone:m.zone, candidate, peak:m.peak, intensity:bounded(m.intensity,0,1) ?? m.peak/4095, ambiguous:m.ambiguous === true || m.zone === 0, clipped:m.clipped === true, time:now, timeUs:bounded(m.time_us,0,4294967295), peaks:numbers(m.peaks), readings:numbers(m.readings)};
+      this.events.unshift(hit); this.events.length = Math.min(this.events.length, 1000);
+      this.total++; this.strongest = Math.max(this.strongest, m.peak);
+      return hit;
+    }
+    if (['status','ready','not_ready'].includes(m.type)) {
+      this.lastStatus = now;
+      const uptime = bounded(m.uptime_ms,0,4294967295);
+      if (uptime !== null && this.uptime !== null && uptime < this.uptime) { this.restarts++; this.history = []; }
+      this.uptime = uptime;
+      this.readings = numbers(m.readings); this.baseline = numbers(m.baseline); this.thresholds = numbers(m.thresholds);
+      this.min = numbers(m.window_min); this.max = numbers(m.window_max);
+      this.active = Number.isInteger(m.active_sensors) && m.active_sensors >= 1 && m.active_sensors <= 4 ? m.active_sensors : 4;
+      if (Array.isArray(m.pins)) this.pins = Array.from({length:4},(_,i)=>bounded(m.pins[i],0,48));
+      for (let i=this.active;i<4;i++) this.readings[i] = this.baseline[i] = this.thresholds[i] = this.min[i] = this.max[i] = null;
+      this.armed = m.armed === true;
+      this.calibration = typeof m.calibration_ok === 'boolean' ? m.calibration_ok : null;
+      this.enabled = typeof m.detection_enabled === 'boolean' ? m.detection_enabled : this.calibration !== false && m.type !== 'not_ready';
+      if (!this.enabled) this.armed = false;
+      this.firmware = typeof m.firmware === 'string' ? m.firmware.slice(0,80) : '';
+      this.mode = typeof m.mode === 'string' ? m.mode.slice(0,80) : 'auto';
+      this.deviceEvents = bounded(m.events,0,4294967295);
+      this.warning = this.calibration === false ? (this.enabled ? 'Idle noise is high; large-spike detection is enabled.' : 'Calibration failed; detection is not enabled.') : '';
+      this.history.push({time:now,values:[...this.readings]}); if (this.history.length>60) this.history.shift();
+    }
+  }
+}
+function exportCSV(events) {
+  const rows = [['received_iso','device_time_us','zone','candidate_zone','peak_adc','intensity','ambiguous','clipped','sensor_1','sensor_2','sensor_3','sensor_4']];
+  for (const e of [...events].reverse()) rows.push([new Date(e.time).toISOString(), e.timeUs ?? '', e.zone, e.candidate ?? '', e.peak, e.intensity.toFixed(3), e.ambiguous, e.clipped, ...e.readings.map(v=>v ?? '')]);
+  return rows.map(row=>row.map(v=>'"'+String(v).replaceAll('"','""')+'"').join(',')).join('\r\n');
+}
+
+const $ = id => document.getElementById(id);
+const monitor = new Monitor();
+let source = 'offline', paused = false, chartSnapshot = [], demoTimer = null, demoTick = 0;
+let port = null, reader = null, readTask = null, closing = false, connecting = false;
+let noticeOverride = '', overrideError = false, renderedEvents = -1;
+const activeFlashes = [0,0,0,0];
+const fmt = value => value === null || value === undefined ? '—' : Math.round(value).toLocaleString();
+const shortTime = value => new Date(value).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+for(let i=0;i<4;i++) {
+  $('zone-grid').insertAdjacentHTML('beforeend', `<div class="zone" id="zone-${i}" style="--color:${COLORS[i]}"><div class="zone-top"><span class="zone-name">ZONE ${i+1}</span><span class="zone-number">0${i+1}</span></div><div class="zone-bottom"><span class="zone-reading" id="zone-value-${i}">—<span class="zone-unit">ADC</span></span><span class="zone-pin" id="zone-pin-${i}">GPIO ${32+i}</span></div></div>`);
+  $('sensor-rows').insertAdjacentHTML('beforeend', `<div class="sensor-row" style="--color:${COLORS[i]}"><div class="sensor-top"><span class="sensor-label"><i class="sensor-dot"></i>Zone ${i+1}<small id="sensor-pin-${i}">GPIO ${32+i}</small></span><span class="sensor-value"><span id="sensor-value-${i}">—</span> <small>/ 4095</small></span></div><div class="meter"><div class="meter-fill" id="meter-${i}"></div></div><div class="sensor-bottom"><span id="base-${i}">Baseline —</span><span id="trigger-${i}">Trigger Δ —</span></div></div>`);
+}
+function setNotice(text, error = false) { noticeOverride = text; overrideError = error; render(); }
+function fresh() { return monitor.lastSeen > 0 && Date.now()-monitor.lastSeen < 5000; }
+function resetSession() { monitor.reset(); renderedEvents = -1; paused = false; chartSnapshot = []; noticeOverride=''; overrideError=false; activeFlashes.fill(0); render(); }
+function ingestLine(line, redraw=true) {
+  const message=parseLine(line);
+  if (!message) { if(line.trim()) monitor.invalid++; return false; }
+  const hit=monitor.accept(message);
+  if(hit && hit.zone>=1 && !hit.ambiguous) activeFlashes[hit.zone-1]=Date.now()+1100;
+  if(redraw) render();
+  return true;
+}
+function render() {
+  const stale=source==='live' && !fresh();
+  $('source-label').textContent = source==='demo'?'Demo · simulated':source==='recorded'?'Recorded log':source==='live'?(stale?'USB · waiting for data':'USB · live'):'Not connected';
+  $('source-dot').className='status-dot'+(source==='live'&&!stale?' live':source==='demo'?' demo':'');
+  $('connect-button').textContent=connecting?'Connecting…':source==='live'?'Disconnect':'⌁  Connect ESP32';
+  $('connect-button').disabled=connecting;
+  $('demo-button').querySelector('span').textContent=source==='demo'?'Stop demo':'Try demo';
+  $('demo-button').disabled=source==='live'||connecting;
+  $('import-button').disabled=source==='live'||connecting;
+  const defaultNotice = source==='demo'?'Demo session — all signals and impacts shown here are simulated.':source==='recorded'?'Recorded session — reviewing imported output, not live board data.':source==='live'?(stale?'USB is open. Waiting for complete JSON messages from the board.':monitor.warning||'Receiving live sensor data. No firmware changes or commands are sent.'):'Connect your board to begin, or try a simulated session.';
+  $('notice').firstChild.textContent=(noticeOverride||defaultNotice)+' ';
+  $('notice').classList.toggle('error',overrideError);
+  $('total-hits').textContent=monitor.total.toLocaleString();
+  $('strongest').textContent=monitor.total?fmt(monitor.strongest):'—';
+  const last=monitor.events[0];
+  $('last-zone').textContent=last?(last.ambiguous?'Uncertain':`Zone ${last.zone}`):'—';
+  $('last-time').textContent=last?(source==='recorded'?'From imported log':shortTime(last.time)):'Waiting for an event';
+  let detector='Offline',detail='No live readings';
+  if(source!=='offline') {
+    detector=!monitor.lastSeen?'Waiting':stale?'No data':monitor.armed?'Armed':monitor.enabled?'Settling':'Not ready';
+    detail=source==='recorded'?'Last recorded state':source==='demo'?'Simulated detector state':stale?'No messages in the last 5 seconds':monitor.armed?'Listening for a large spike':monitor.enabled?'Waiting for quiet / cooldown':'Waiting for detector readiness';
+  }
+  $('detector').textContent=detector; $('detector').style.color=detector==='Armed'?'var(--accent)':'var(--text)'; $('detector-detail').textContent=detail;
+  $('zone-count').textContent=monitor.active+' active zones';
+  for(let i=0;i<4;i++) {
+    $('zone-'+i).classList.toggle('disabled',i>=monitor.active);
+    $('zone-'+i).classList.toggle('hit',activeFlashes[i]>Date.now());
+    $('zone-value-'+i).firstChild.textContent=fmt(monitor.readings[i]);
+    $('zone-pin-'+i).textContent=i>=monitor.active?'INACTIVE':`GPIO ${monitor.pins[i]??'—'}`;
+    $('sensor-pin-'+i).textContent=i>=monitor.active?'Inactive':`GPIO ${monitor.pins[i]??'—'}`;
+    $('sensor-value-'+i).textContent=fmt(monitor.readings[i]);
+    $('meter-'+i).style.width=((monitor.readings[i]??0)/4095*100)+'%';
+    $('base-'+i).textContent=`Baseline ${fmt(monitor.baseline[i])}`;
+    $('trigger-'+i).textContent=`Trigger Δ ${fmt(monitor.thresholds[i])}`;
+  }
+  $('zone-message').textContent=last?.ambiguous?`Similar peaks — location uncertain${last.candidate?` (strongest: zone ${last.candidate})`:''}.`:'Zone layout follows your sensor numbering.';
+  $('firmware').textContent=monitor.firmware||'—';
+  $('mode').textContent=monitor.mode==='large_spike'?'Large spike':monitor.mode==='auto'?'Automatic':monitor.mode||'—';
+  $('calibration').textContent=monitor.calibration===false?(monitor.enabled?'High noise · detection on':'Failed · detection off'):monitor.calibration===true?'Passed':'—';
+  $('calibration').style.color=monitor.calibration===false?'var(--z3)':'';
+  $('transport').textContent=source==='demo'?'Simulated · no USB':source==='recorded'?'Imported JSON log':'115200 baud · USB';
+  $('pause-button').textContent=paused?'Resume chart':'Pause chart';
+  $('export-button').disabled=!monitor.events.length;
+  $('event-count').textContent=monitor.events.length;
+  $('events-empty').hidden=monitor.events.length>0;
+  if(renderedEvents!==monitor.total) {renderEvents();renderedEvents=monitor.total;}
+  renderChart();
+  const skipped=monitor.invalid?` · ${monitor.invalid} non-JSON / invalid lines skipped`:'';
+  $('footer-status').textContent=(source==='demo'?'Simulated session':source==='recorded'?'Imported data stays in this browser':'Data stays in this browser · no firmware changes')+skipped;
+}
+function renderEvents() {
+  const fragment=document.createDocumentFragment();
+  for(const hit of monitor.events.slice(0,100)) {
+    const row=document.createElement('tr');
+    const color=hit.ambiguous?'#eeae7d':COLORS[hit.zone-1];
+    const timeCell=document.createElement('td');
+    timeCell.textContent=source==='recorded'&&hit.timeUs!==null?`${(hit.timeUs/1000000).toFixed(3)} s after boot`:shortTime(hit.time);
+    row.append(timeCell);
+    const zoneCell=document.createElement('td'); zoneCell.className='table-zone'; zoneCell.style.setProperty('--color',color); zoneCell.textContent=hit.ambiguous?'Uncertain':`●  Zone ${hit.zone}`; row.append(zoneCell);
+    const peak=document.createElement('td'); peak.textContent=fmt(hit.peak);row.append(peak);
+    const intensity=document.createElement('td');intensity.style.setProperty('--color',color);
+    const percent=Math.round(hit.intensity*100);
+    intensity.innerHTML=`<div class="intensity-cell"><span class="mini-meter"><span style="width:${percent}%"></span></span>${percent}%</div>`;row.append(intensity);
+    const result=document.createElement('td');const tag=document.createElement('span');tag.className='result-tag'+(hit.ambiguous||hit.clipped?' uncertain':'');tag.textContent=hit.ambiguous?'Similar peaks':hit.clipped?'ADC clipped':'Detected';result.append(tag);row.append(result);
+    fragment.append(row);
+  }
+  $('event-body').replaceChildren(fragment);
+}
+function renderChart() {
+  const points=paused?chartSnapshot:monitor.history;
+  $('chart-empty').hidden=points.length>0; $('sample-count').textContent=points.length+' samples'+(paused?' · paused':'');
+  const lines=document.createDocumentFragment();
+  for(let zone=0;zone<4;zone++) {
+    let d='',started=false;
+    for(let i=0;i<points.length;i++) {
+      const value=points[i].values[zone];if(value===null){started=false;continue;}
+      const x=45+(points.length>1?i/(points.length-1)*1045:0),y=160-value/4095*150;
+      d+=`${started?'L':'M'}${x.toFixed(1)},${y.toFixed(1)} `;started=true;
+      if(points.length===1){d+=`L${(x+3).toFixed(1)},${y.toFixed(1)}`;}
+    }
+    const path=document.createElementNS('http://www.w3.org/2000/svg','path');path.setAttribute('d',d);path.setAttribute('stroke',COLORS[zone]);path.setAttribute('class','signal-line');lines.append(path);
+  }
+  $('chart-lines').replaceChildren(lines);
+}
+function stopDemo() { if(demoTimer)clearInterval(demoTimer);demoTimer=null; }
+function demoStatus() {
+  demoTick++;
+  const readings=[0,1,2,3].map(i=>Math.round(680+140*Math.sin(demoTick*.48+i*.9)+Math.random()*80));
+  monitor.accept({type:'status',firmware:'piezo-zones-1.2 (demo)',mode:'large_spike',active_sensors:4,pins:[32,33,34,35],readings,thresholds:[1800,1800,1800,1800],baseline:[750,750,750,750],calibration_ok:true,detection_enabled:true,armed:true,uptime_ms:demoTick*1000,events:monitor.total});
+  if(demoTick%3===0) {
+    const zone=(Math.floor(demoTick/3)-1)%4+1,peak=1900+Math.round(Math.random()*1000);
+    const peaks=[130,210,110,180];peaks[zone-1]=peak;
+    const hit={type:'hit',zone,candidate_zone:zone,peak,intensity:peak/4095,peaks,readings:peaks.map(v=>v+750),time_us:demoTick*1000000,ambiguous:false,clipped:false};
+    monitor.accept(hit);activeFlashes[zone-1]=Date.now()+1100;
+  }
+  render();
+}
+$('demo-button').addEventListener('click',()=>{
+  if(source==='live'||connecting)return;
+  if(source==='demo'){stopDemo();source='offline';resetSession();return;}
+  stopDemo();resetSession();source='demo';demoTick=0;demoStatus();demoTimer=setInterval(demoStatus,1000);
+});
+async function connect() {
+  if(connecting)return;
+  if(source==='live'){await disconnect();return;}
+  if(!('serial' in navigator)||!window.isSecureContext){setNotice('Live USB needs desktop Chrome or Edge on HTTPS or localhost. You can still use demo or import a serial log here.',true);return;}
+  connecting=true;render();
+  let chosen;
+  try {
+    chosen=await navigator.serial.requestPort();
+    await chosen.open({baudRate:115200,dataBits:8,stopBits:1,parity:'none',flowControl:'none',bufferSize:16384});
+  } catch(error) {
+    if(chosen)try{await chosen.close();}catch{}
+    connecting=false;
+    if(error.name==='NotFoundError'){render();return;}
+    setNotice('Could not open USB. Close Arduino Serial Monitor and other apps using the port, then try again. '+String(error.message).slice(0,150),true);return;
+  }
+  stopDemo();resetSession();port=chosen;closing=false;connecting=false;source='live';render();
+  readTask=readSerial(chosen);
+}
+async function readSerial(chosen) {
+  const decoder=new TextDecoder();const lines=new LineBuffer(line=>ingestLine(line,false));
+  try {
+    while(chosen.readable&&!closing) {
+      reader=chosen.readable.getReader();
+      try {
+        while(!closing) {
+          const {value,done}=await reader.read();if(done)break;
+          lines.push(decoder.decode(value,{stream:true}));render();
+        }
+      } finally {reader.releaseLock();reader=null;}
+      if(!closing)break;
+    }
+    lines.push(decoder.decode());lines.flush();
+  } catch(error) {
+    if(!closing){noticeOverride='USB stream ended. Reconnect the board to resume.';overrideError=true;}
+  } finally {
+    try{await chosen.close();}catch{}
+    if(port===chosen){port=null;source='offline';}
+    closing=false;
+    if(!noticeOverride)noticeOverride='Disconnected. Session data remains available for export.';
+    render();
+  }
+}
+async function disconnect() {
+  closing=true;
+  try{if(reader)await reader.cancel();}catch{}
+  if(readTask)await readTask;
+  readTask=null;
+}
+$('connect-button').addEventListener('click',connect);
+$('pause-button').addEventListener('click',()=>{paused=!paused;if(paused)chartSnapshot=monitor.history.map(p=>({...p,values:[...p.values]}));render();});
+$('clear-button').addEventListener('click',()=>{
+  monitor.events=[];monitor.total=0;monitor.strongest=0;monitor.history=[];chartSnapshot=[];renderedEvents=-1;activeFlashes.fill(0);render();
+});
+$('export-button').addEventListener('click',()=>{
+  const blob=new Blob([exportCSV(monitor.events)],{type:'text/csv;charset=utf-8'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=`impact-lab-${source}-${new Date().toISOString().replaceAll(':','-')}.csv`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+});
+$('import-button').addEventListener('click',()=>{if(source==='live'||connecting)return;$('import-result').textContent='';$('import-dialog').showModal();});
+$('import-file').addEventListener('change',async event=>{
+  const file=event.target.files[0];if(!file)return;
+  if(file.size>2*1024*1024){$('import-result').textContent='Choose a log smaller than 2 MB.';return;}
+  try{$('import-text').value=await file.text();$('import-result').textContent=file.name;}catch{$('import-result').textContent='The file could not be read.';}
+});
+$('load-button').addEventListener('click',()=>{
+  const text=$('import-text').value;if(text.length>2*1024*1024){$('import-result').textContent='Please import less than 2 MB at a time.';return;}
+  const lines=text.split(/\r?\n/);const valid=lines.map(parseLine).filter(Boolean);
+  if(!valid.length){$('import-result').textContent='No complete firmware JSON messages found. Paste whole lines, including { and }.';return;}
+  stopDemo();resetSession();source='recorded';
+  for(const message of valid)monitor.accept(message);
+  monitor.invalid=lines.filter(s=>s.trim()).length-valid.length;
+  activeFlashes.fill(0);renderedEvents=-1;
+  noticeOverride=`Imported ${valid.length} messages. This is a recorded session, not a live connection.`;
+  $('import-dialog').close();render();
+});
+setInterval(()=>{if(source==='live'||source==='demo'||activeFlashes.some(v=>v>Date.now()-1500))render();},400);
+window.addEventListener('beforeunload',()=>{stopDemo();if(reader)reader.cancel().catch(()=>{});});
+render();
+
+</script>
+</body></html>

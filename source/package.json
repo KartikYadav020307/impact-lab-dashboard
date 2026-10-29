@@ -1,0 +1,1 @@
+{"name":"impact-lab-dashboard","private":true,"type":"module","scripts":{"check":"node --check dist/app.js && node --check dist/model.js"}}

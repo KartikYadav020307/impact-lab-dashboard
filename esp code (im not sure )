@@ -1,0 +1,479 @@
+#include <Arduino.h>
+#include <math.h>
+
+// =====================================================
+// IMPACT-SHIELD - Seeed Studio XIAO ESP32-C3
+// =====================================================
+// Zone 1: D0 / GPIO2
+// Zone 2: D1 / GPIO3
+// Zone 3: D2 / GPIO4
+// Zone 4: D4 / GPIO6
+//
+// IMPORTANT:
+// Use a suitable protective analog circuit for each piezo.
+// Never connect an unprotected piezo directly to an ESP32 pin.
+
+// ---------------- SENSOR CONFIGURATION ----------------
+
+constexpr uint8_t ACTIVE_SENSORS = 4;
+constexpr uint8_t PINS[4] = {2, 3, 4, 6};
+
+// Lower threshold = more sensitive.
+// Trigger when deviation from startup baseline reaches 20.
+constexpr bool LARGE_SPIKE_MODE = true;
+constexpr uint16_t SPIKE_THRESHOLD[4] = {20, 20, 20, 20};
+constexpr uint16_t MIN_THRESHOLD[4] = {10, 10, 10, 10};
+
+constexpr uint16_t MAX_CALIBRATED_THRESHOLD = 1000;
+constexpr float GAIN[4] = {1.0f, 1.0f, 1.0f, 1.0f};
+
+// ---------------- TIMING ----------------
+
+constexpr uint32_t SAMPLE_US = 250;
+constexpr uint32_t PEAK_WINDOW_US = 8000;
+constexpr uint32_t COOLDOWN_US = 80000;
+constexpr uint32_t QUIET_REARM_US = 15000;
+
+constexpr float DOMINANCE_RATIO = 1.20f;
+
+// ---------------- SENSOR DATA ----------------
+
+float baseline[4] = {};
+uint16_t threshold[4] = {};
+uint16_t raw[4] = {};
+uint16_t peaks[4] = {};
+uint16_t rawAtPeak[4] = {};
+
+uint16_t windowMin[4] = {4095, 4095, 4095, 4095};
+uint16_t windowMax[4] = {};
+
+bool calibrationOK = false;
+bool capturing = false;
+bool armed = false;
+bool quietTracking = false;
+bool cooldownActive = false;
+
+uint32_t captureStart = 0;
+uint32_t quietSince = 0;
+uint32_t cooldownStart = 0;
+uint32_t nextSample = 0;
+uint32_t lastStatus = 0;
+uint32_t eventCount = 0;
+
+// ---------------- BASIC FUNCTIONS ----------------
+
+bool detectionEnabled() {
+  return LARGE_SPIKE_MODE || calibrationOK;
+}
+
+uint16_t deviation(uint8_t i) {
+  return (uint16_t)fabsf((float)raw[i] - baseline[i]);
+}
+
+void readSensors() {
+  for (uint8_t i = 0; i < ACTIVE_SENSORS; i++) {
+    raw[i] = analogRead(PINS[i]);
+
+    if (raw[i] < windowMin[i]) {
+      windowMin[i] = raw[i];
+    }
+
+    if (raw[i] > windowMax[i]) {
+      windowMax[i] = raw[i];
+    }
+  }
+}
+
+void printArray(const uint16_t values[4]) {
+  Serial.print('[');
+
+  for (uint8_t i = 0; i < 4; i++) {
+    if (i > 0) Serial.print(',');
+
+    if (i < ACTIVE_SENSORS) {
+      Serial.print(values[i]);
+    } else {
+      Serial.print("null");
+    }
+  }
+
+  Serial.print(']');
+}
+
+// ---------------- STATUS JSON ----------------
+
+void status(const char *type) {
+  Serial.printf(
+    "{\"type\":\"%s\","
+    "\"firmware\":\"piezo-zones-xiao-c3-1.1\","
+    "\"board\":\"XIAO ESP32-C3\","
+    "\"uptime_ms\":%lu,"
+    "\"active_sensors\":%u,"
+    "\"pins\":[",
+    type,
+    (unsigned long)millis(),
+    ACTIVE_SENSORS
+  );
+
+  for (uint8_t i = 0; i < 4; i++) {
+    if (i > 0) Serial.print(',');
+
+    if (i < ACTIVE_SENSORS) {
+      Serial.print(PINS[i]);
+    } else {
+      Serial.print("null");
+    }
+  }
+
+  Serial.print("],\"readings\":");
+  printArray(raw);
+
+  Serial.print(",\"thresholds\":");
+  printArray(threshold);
+
+  Serial.print(",\"window_min\":");
+  printArray(windowMin);
+
+  Serial.print(",\"window_max\":");
+  printArray(windowMax);
+
+  Serial.print(",\"baseline\":[");
+
+  for (uint8_t i = 0; i < 4; i++) {
+    if (i > 0) Serial.print(',');
+
+    if (i < ACTIVE_SENSORS) {
+      Serial.print(baseline[i], 1);
+    } else {
+      Serial.print("null");
+    }
+  }
+
+  Serial.printf(
+    "],\"mode\":\"%s\","
+    "\"calibration_ok\":%s,"
+    "\"detection_enabled\":%s,"
+    "\"armed\":%s,"
+    "\"events\":%lu}\n",
+    LARGE_SPIKE_MODE ? "large_spike" : "auto",
+    calibrationOK ? "true" : "false",
+    detectionEnabled() ? "true" : "false",
+    armed ? "true" : "false",
+    (unsigned long)eventCount
+  );
+
+  for (uint8_t i = 0; i < ACTIVE_SENSORS; i++) {
+    windowMin[i] = 4095;
+    windowMax[i] = 0;
+  }
+}
+
+// ---------------- BASELINE CALIBRATION ----------------
+
+void calibrate() {
+  Serial.println(
+    "{\"type\":\"calibrating\",\"duration_ms\":1024}"
+  );
+
+  capturing = false;
+  armed = false;
+  quietTracking = false;
+  cooldownActive = false;
+  calibrationOK = false;
+
+  constexpr uint16_t N = 512;
+
+  uint32_t sum[4] = {};
+  uint16_t noiseMax[4] = {};
+  double noiseSquares[4] = {};
+
+  for (uint8_t i = 0; i < ACTIVE_SENSORS; i++) {
+    windowMin[i] = 4095;
+    windowMax[i] = 0;
+  }
+
+  // Estimate the resting voltage of every sensor.
+  for (uint16_t n = 0; n < N; n++) {
+    readSensors();
+
+    for (uint8_t i = 0; i < ACTIVE_SENSORS; i++) {
+      sum[i] += raw[i];
+    }
+
+    delay(1);
+  }
+
+  for (uint8_t i = 0; i < ACTIVE_SENSORS; i++) {
+    baseline[i] = (float)sum[i] / N;
+  }
+
+  // Estimate idle noise.
+  for (uint16_t n = 0; n < N; n++) {
+    readSensors();
+
+    for (uint8_t i = 0; i < ACTIVE_SENSORS; i++) {
+      uint16_t d = deviation(i);
+
+      noiseSquares[i] += (double)d * d;
+
+      if (d > noiseMax[i]) {
+        noiseMax[i] = d;
+      }
+    }
+
+    delay(1);
+  }
+
+  calibrationOK = true;
+
+  for (uint8_t i = 0; i < ACTIVE_SENSORS; i++) {
+    float rms = sqrtf((float)(noiseSquares[i] / N));
+
+    float automaticThreshold = fmaxf(
+      MIN_THRESHOLD[i],
+      fmaxf(noiseMax[i] + 32.0f, 6.0f * rms + 32.0f)
+    );
+
+    threshold[i] = LARGE_SPIKE_MODE
+      ? SPIKE_THRESHOLD[i]
+      : (uint16_t)fminf(4095.0f, ceilf(automaticThreshold));
+
+    float reachableDelta = fmaxf(
+      baseline[i],
+      4095.0f - baseline[i]
+    );
+
+    if (automaticThreshold >= MAX_CALIBRATED_THRESHOLD ||
+        ceilf(automaticThreshold) >= reachableDelta) {
+      calibrationOK = false;
+
+      Serial.printf(
+        "{\"type\":\"calibration_warning\","
+        "\"zone\":%u,"
+        "\"reason\":\"unstable_input_or_unreachable_threshold\","
+        "\"required_threshold\":%.1f,"
+        "\"idle_rms\":%.1f}\n",
+        i + 1,
+        automaticThreshold,
+        rms
+      );
+    }
+  }
+
+  nextSample = micros();
+  lastStatus = millis();
+
+  status(detectionEnabled() ? "ready" : "not_ready");
+}
+
+// ---------------- IMPACT CLASSIFICATION ----------------
+
+void finishImpact() {
+  int winner = -1;
+
+  float best = 0.0f;
+  float second = 0.0f;
+
+  for (uint8_t i = 0; i < ACTIVE_SENSORS; i++) {
+    if (peaks[i] < threshold[i]) continue;
+
+    float score = peaks[i] * GAIN[i];
+
+    if (score > best) {
+      second = best;
+      best = score;
+      winner = i;
+    } else if (score > second) {
+      second = score;
+    }
+  }
+
+  if (winner >= 0) {
+    bool ambiguous =
+      second > 0.0f &&
+      best < second * DOMINANCE_RATIO;
+
+    eventCount++;
+
+    Serial.printf(
+      "{\"type\":\"hit\","
+      "\"event\":%lu,"
+      "\"time_us\":%lu,"
+      "\"zone\":%u,"
+      "\"candidate_zone\":%u,"
+      "\"ambiguous\":%s,"
+      "\"peak\":%u,"
+      "\"intensity\":%.3f,"
+      "\"dominance\":",
+      (unsigned long)eventCount,
+      (unsigned long)captureStart,
+      ambiguous ? 0 : winner + 1,
+      winner + 1,
+      ambiguous ? "true" : "false",
+      peaks[winner],
+      peaks[winner] / 4095.0f
+    );
+
+    if (second > 0.0f) {
+      Serial.print(best / second, 3);
+    } else {
+      Serial.print("null");
+    }
+
+    Serial.print(",\"peaks\":");
+    printArray(peaks);
+
+    Serial.print(",\"readings\":");
+    printArray(rawAtPeak);
+
+    Serial.print(",\"thresholds\":");
+    printArray(threshold);
+
+    Serial.printf(
+      ",\"clipped\":%s}\n",
+      rawAtPeak[winner] >= 4095 ? "true" : "false"
+    );
+  }
+
+  capturing = false;
+  armed = false;
+  quietTracking = false;
+
+  cooldownActive = true;
+  cooldownStart = micros();
+}
+
+// ---------------- SETUP ----------------
+
+void setup() {
+  Serial.begin(115200);
+
+  analogReadResolution(12);
+
+  for (uint8_t i = 0; i < ACTIVE_SENSORS; i++) {
+    pinMode(PINS[i], INPUT);
+    analogSetPinAttenuation(PINS[i], ADC_11db);
+  }
+
+  delay(250);
+  calibrate();
+}
+
+// ---------------- MAIN LOOP ----------------
+
+void loop() {
+  uint32_t now = micros();
+
+  if ((int32_t)(now - nextSample) < 0) {
+    return;
+  }
+
+  nextSample = now + SAMPLE_US;
+
+  readSensors();
+
+  bool triggered = false;
+  bool quiet = true;
+
+  for (uint8_t i = 0; i < ACTIVE_SENSORS; i++) {
+    uint16_t d = deviation(i);
+
+    if (d >= threshold[i]) {
+      triggered = true;
+    }
+
+    uint16_t release = LARGE_SPIKE_MODE
+      ? (threshold[i] * 9u / 10u)
+      : threshold[i] / 2;
+
+    if (d >= release) {
+      quiet = false;
+    }
+  }
+
+  // Start recording when any sensor crosses its threshold.
+  if (detectionEnabled() &&
+      !capturing &&
+      armed &&
+      triggered) {
+
+    capturing = true;
+    armed = false;
+    captureStart = now;
+
+    for (uint8_t i = 0; i < ACTIVE_SENSORS; i++) {
+      peaks[i] = 0;
+      rawAtPeak[i] = raw[i];
+    }
+  }
+
+  // Capture peaks from all sensors during the impact window.
+  if (capturing) {
+    for (uint8_t i = 0; i < ACTIVE_SENSORS; i++) {
+      uint16_t d = deviation(i);
+
+      if (d > peaks[i]) {
+        peaks[i] = d;
+        rawAtPeak[i] = raw[i];
+      }
+    }
+
+    if ((uint32_t)(now - captureStart) >= PEAK_WINDOW_US) {
+      finishImpact();
+    }
+
+    return;
+  }
+
+  // Rearm after the readings become quiet.
+  if (detectionEnabled() && quiet) {
+    if (!quietTracking) {
+      quietSince = now;
+      quietTracking = true;
+    }
+
+    bool settled =
+      (uint32_t)(now - quietSince) >= QUIET_REARM_US;
+
+    bool cooled =
+      !cooldownActive ||
+      (uint32_t)(now - cooldownStart) >= COOLDOWN_US;
+
+    if (settled && cooled) {
+      armed = true;
+      cooldownActive = false;
+
+      // Keep the startup baseline fixed in sensitive mode.
+      if (!LARGE_SPIKE_MODE) {
+        for (uint8_t i = 0; i < ACTIVE_SENSORS; i++) {
+          baseline[i] +=
+            0.0005f * ((float)raw[i] - baseline[i]);
+        }
+      }
+    }
+  } else {
+    quietTracking = false;
+  }
+
+  // Serial commands.
+  if (Serial.available()) {
+    char c = Serial.read();
+
+    if (c == 'c' || c == 'C') {
+      calibrate();
+      return;
+    }
+
+    if (c == 's' || c == 'S') {
+      status("status");
+    }
+  }
+
+  // Periodic JSON status for the GUI.
+  if ((uint32_t)(millis() - lastStatus) >= 1000) {
+    lastStatus = millis();
+    status("status");
+  }
+
+  delay(0);
+}

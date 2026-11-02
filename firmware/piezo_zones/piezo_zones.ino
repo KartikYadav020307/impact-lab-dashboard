@@ -30,11 +30,11 @@ constexpr uint8_t PINS[4] = {2, 3, 4, 5};
 constexpr bool LARGE_SPIKE_MODE = true;
 
 // Trigger delta above baseline (0-4095 range, 12-bit ADC):
-// Realistic thresholds for piezo taps (was 1800 which was too insensitive):
-//   50-100  = very sensitive (light finger taps)
-//   120-250 = medium taps
-constexpr uint16_t SPIKE_THRESHOLD[4] = {80, 80, 80, 80};
-constexpr uint16_t MIN_THRESHOLD[4]   = {30, 30, 30, 30};
+// Set to 250 so idle noise (which in your setup peaks around ~97) is completely ignored!
+// It will stay dark/idle at rest and ONLY shine when you tap it with a real impact.
+// (Tuning: 200 = lighter taps, 250 = standard taps, 400+ = heavy impacts)
+constexpr uint16_t SPIKE_THRESHOLD[4] = {250, 250, 250, 250};
+constexpr uint16_t MIN_THRESHOLD[4]   = {100, 100, 100, 100};
 constexpr uint16_t MAX_CALIBRATED_THRESHOLD = 1000;
 constexpr float GAIN[4] = {1.0f, 1.0f, 1.0f, 1.0f};
 
